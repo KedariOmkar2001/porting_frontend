@@ -54,7 +54,7 @@ export default function App() {
     formData.append('employee_data', employeeFile);
 
     try {
-      const response = await fetch('http://localhost:8000/validate-data', {
+      const response = await fetch('https://porting-backend-1.onrender.com/validate-data', {
         method: 'POST',
         body: formData,
       });
@@ -92,7 +92,7 @@ export default function App() {
     formData.append('skip_validation', skipValidation.toString());
 
     try {
-      const response = await fetch('http://localhost:8000/generate-sql', {
+      const response = await fetch('https://porting-backend-1.onrender.com/generate-sql', {
         method: 'POST',
         body: formData,
       });
@@ -120,7 +120,7 @@ export default function App() {
     if (!result?.filename) return;
 
     try {
-      const response = await fetch(`http://localhost:8000/download/${result.filename}`);
+      const response = await fetch(`https://porting-backend-1.onrender.com/download/${result.filename}`);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
