@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, Download, AlertCircle, CheckCircle, Settings, FileText, Database } from 'lucide-react';
+import { Upload, Download, AlertCircle, CheckCircle, Settings, FileText, Database, AlertTriangle, XCircle, Info } from 'lucide-react';
 
 export default function App() {
   const [masterFile, setMasterFile] = useState(null);
@@ -8,7 +8,9 @@ export default function App() {
   const [operatedBy, setOperatedBy] = useState('1');
   const [startingUid, setStartingUid] = useState('1000');
   const [loading, setLoading] = useState(false);
+  const [validating, setValidating] = useState(false);
   const [result, setResult] = useState(null);
+  const [validationResult, setValidationResult] = useState(null);
   const [error, setError] = useState(null);
   const [showConfig, setShowConfig] = useState(false);
 
@@ -17,6 +19,8 @@ export default function App() {
     if (file && (file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) {
       setMasterFile(file);
       setError(null);
+      setValidationResult(null);
+      setResult(null);
     } else {
       setError('Please select a valid Excel file (.xlsx or .xls)');
     }
@@ -27,12 +31,49 @@ export default function App() {
     if (file && (file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) {
       setEmployeeFile(file);
       setError(null);
+      setValidationResult(null);
+      setResult(null);
     } else {
       setError('Please select a valid Excel file (.xlsx or .xls)');
     }
   };
 
-  const handleSubmit = async () => {
+  const handleValidate = async () => {
+    if (!masterFile || !employeeFile) {
+      setError('Please upload both Excel files');
+      return;
+    }
+
+    setValidating(true);
+    setError(null);
+    setValidationResult(null);
+    setResult(null);
+
+    const formData = new FormData();
+    formData.append('master_data', masterFile);
+    formData.append('employee_data', employeeFile);
+
+    try {
+      const response = await fetch('http://localhost:8000/validate-data', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Failed to validate data');
+      }
+
+      setValidationResult(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setValidating(false);
+    }
+  };
+
+  const handleSubmit = async (skipValidation = false) => {
     if (!masterFile || !employeeFile) {
       setError('Please upload both Excel files');
       return;
@@ -48,9 +89,10 @@ export default function App() {
     formData.append('tenant_id', tenantId);
     formData.append('operated_by_uid', operatedBy);
     formData.append('starting_uid', startingUid);
+    formData.append('skip_validation', skipValidation.toString());
 
     try {
-      const response = await fetch('https://porting-backend-1.onrender.com/generate-sql', {
+      const response = await fetch('http://localhost:8000/generate-sql', {
         method: 'POST',
         body: formData,
       });
@@ -62,6 +104,11 @@ export default function App() {
       }
 
       setResult(data);
+
+      // If validation data is included in the response, show it
+      if (data.validation) {
+        setValidationResult(data.validation);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -73,7 +120,7 @@ export default function App() {
     if (!result?.filename) return;
 
     try {
-      const response = await fetch(`https://porting-backend-1.onrender.com/download/${result.filename}`);
+      const response = await fetch(`http://localhost:8000/download/${result.filename}`);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -90,7 +137,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8 pt-8">
           <div className="flex items-center justify-center mb-4">
@@ -216,24 +263,44 @@ export default function App() {
               )}
             </div>
 
-            {/* Submit Button */}
-            <button
-              onClick={handleSubmit}
-              disabled={loading || !masterFile || !employeeFile}
-              className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
-            >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                  Generating SQL...
-                </>
-              ) : (
-                <>
-                  <Database className="w-5 h-5 mr-2" />
-                  Generate SQL Queries
-                </>
-              )}
-            </button>
+            {/* Action Buttons */}
+            <div className="grid md:grid-cols-2 gap-4">
+              <button
+                onClick={handleValidate}
+                disabled={validating || !masterFile || !employeeFile}
+                className="bg-amber-500 text-white py-3 rounded-lg font-semibold hover:bg-amber-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+              >
+                {validating ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                    Validating...
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="w-5 h-5 mr-2" />
+                    Validate Data
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={() => handleSubmit(false)}
+                disabled={loading || !masterFile || !employeeFile}
+                className="bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                    Generating SQL...
+                  </>
+                ) : (
+                  <>
+                    <Database className="w-5 h-5 mr-2" />
+                    Generate SQL Queries
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -247,8 +314,195 @@ export default function App() {
           </div>
         )}
 
+        {/* Validation Results */}
+        {validationResult && !result && (
+          <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
+            <div className="flex items-center mb-6">
+              {validationResult.can_proceed ? (
+                <>
+                  <CheckCircle className="w-8 h-8 text-green-500 mr-3" />
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-800">Validation Passed!</h2>
+                    <p className="text-gray-600">Your data is ready for SQL generation</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <XCircle className="w-8 h-8 text-red-500 mr-3" />
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-800">Validation Failed</h2>
+                    <p className="text-gray-600">Please fix the errors below before generating SQL</p>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Master Data Validation */}
+            {validationResult.master_data_validation && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">Master Data</h3>
+                <div className="bg-blue-50 p-4 rounded-lg mb-4">
+                  <p className="text-sm text-gray-700">
+                    <strong>Designations:</strong> {validationResult.master_data_validation.designation_count} records
+                  </p>
+                  <p className="text-sm text-gray-700">
+                    <strong>Offices:</strong> {validationResult.master_data_validation.office_count} records
+                  </p>
+                </div>
+
+                {validationResult.master_data_validation.errors?.length > 0 && (
+                  <div className="bg-red-50 rounded-lg p-4 mb-4">
+                    <h4 className="font-semibold text-red-800 mb-2 flex items-center">
+                      <XCircle className="w-4 h-4 mr-2" />
+                      Errors ({validationResult.master_data_validation.errors.length})
+                    </h4>
+                    <div className="max-h-40 overflow-y-auto space-y-2">
+                      {validationResult.master_data_validation.errors.map((err, idx) => (
+                        <div key={idx} className="text-sm text-red-700 bg-white p-2 rounded">
+                          <strong>{err.type}:</strong> {err.message}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {validationResult.master_data_validation.warnings?.length > 0 && (
+                  <div className="bg-yellow-50 rounded-lg p-4">
+                    <h4 className="font-semibold text-yellow-800 mb-2 flex items-center">
+                      <AlertTriangle className="w-4 h-4 mr-2" />
+                      Warnings ({validationResult.master_data_validation.warnings.length})
+                    </h4>
+                    <div className="max-h-40 overflow-y-auto space-y-2">
+                      {validationResult.master_data_validation.warnings.map((warn, idx) => (
+                        <div key={idx} className="text-sm text-yellow-700 bg-white p-2 rounded">
+                          {warn.message}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Employee Data Validation */}
+            {validationResult.employee_data_validation && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">Employee Data</h3>
+
+                {/* Summary Stats */}
+                <div className="grid md:grid-cols-4 gap-4 mb-4">
+                  <div className="bg-blue-50 p-3 rounded-lg">
+                    <p className="text-xs text-gray-600 mb-1">Total Rows</p>
+                    <p className="text-xl font-bold text-blue-600">
+                      {validationResult.employee_data_validation.summary?.total_rows || 0}
+                    </p>
+                  </div>
+                  <div className="bg-red-50 p-3 rounded-lg">
+                    <p className="text-xs text-gray-600 mb-1">Errors</p>
+                    <p className="text-xl font-bold text-red-600">
+                      {validationResult.employee_data_validation.summary?.error_count || 0}
+                    </p>
+                  </div>
+                  <div className="bg-yellow-50 p-3 rounded-lg">
+                    <p className="text-xs text-gray-600 mb-1">Warnings</p>
+                    <p className="text-xl font-bold text-yellow-600">
+                      {validationResult.employee_data_validation.summary?.warning_count || 0}
+                    </p>
+                  </div>
+                  <div className="bg-green-50 p-3 rounded-lg">
+                    <p className="text-xs text-gray-600 mb-1">Valid Rows</p>
+                    <p className="text-xl font-bold text-green-600">
+                      {(validationResult.employee_data_validation.summary?.total_rows || 0) -
+                       (validationResult.employee_data_validation.summary?.error_count || 0)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Errors */}
+                {validationResult.employee_data_validation.errors?.length > 0 && (
+                  <div className="bg-red-50 rounded-lg p-4 mb-4">
+                    <h4 className="font-semibold text-red-800 mb-3 flex items-center">
+                      <XCircle className="w-4 h-4 mr-2" />
+                      Errors ({validationResult.employee_data_validation.errors.length})
+                    </h4>
+                    <div className="max-h-60 overflow-y-auto space-y-2">
+                      {validationResult.employee_data_validation.errors.map((err, idx) => (
+                        <div key={idx} className="text-sm bg-white p-3 rounded border border-red-200">
+                          <div className="flex items-start">
+                            <span className="inline-block bg-red-200 text-red-800 px-2 py-1 rounded text-xs font-semibold mr-2">
+                              {err.type}
+                            </span>
+                            {err.row && (
+                              <span className="inline-block bg-gray-200 text-gray-700 px-2 py-1 rounded text-xs font-semibold mr-2">
+                                Row {err.row}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-red-700 mt-2">{err.message}</p>
+                          {err.value && (
+                            <p className="text-gray-600 text-xs mt-1">Value: "{err.value}"</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Warnings */}
+                {validationResult.employee_data_validation.warnings?.length > 0 && (
+                  <div className="bg-yellow-50 rounded-lg p-4">
+                    <h4 className="font-semibold text-yellow-800 mb-3 flex items-center">
+                      <AlertTriangle className="w-4 h-4 mr-2" />
+                      Warnings ({validationResult.employee_data_validation.warnings.length})
+                    </h4>
+                    <div className="max-h-60 overflow-y-auto space-y-2">
+                      {validationResult.employee_data_validation.warnings.map((warn, idx) => (
+                        <div key={idx} className="text-sm bg-white p-3 rounded border border-yellow-200">
+                          <div className="flex items-start">
+                            <span className="inline-block bg-yellow-200 text-yellow-800 px-2 py-1 rounded text-xs font-semibold mr-2">
+                              {warn.type}
+                            </span>
+                            {warn.row && (
+                              <span className="inline-block bg-gray-200 text-gray-700 px-2 py-1 rounded text-xs font-semibold mr-2">
+                                Row {warn.row}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-yellow-700 mt-2">{warn.message}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex gap-4">
+              {validationResult.can_proceed && (
+                <button
+                  onClick={() => handleSubmit(false)}
+                  disabled={loading}
+                  className="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 disabled:bg-gray-300 transition-colors flex items-center justify-center"
+                >
+                  <Database className="w-5 h-5 mr-2" />
+                  Proceed to Generate SQL
+                </button>
+              )}
+              {!validationResult.can_proceed && (
+                <div className="flex-1 bg-gray-100 border-2 border-dashed border-gray-300 p-4 rounded-lg">
+                  <div className="flex items-center text-gray-600">
+                    <Info className="w-5 h-5 mr-2" />
+                    <p className="text-sm">Please fix all errors before generating SQL</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Success Result */}
-        {result && (
+        {result && result.success && (
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <div className="flex items-center mb-6">
               <CheckCircle className="w-8 h-8 text-green-500 mr-3" />
@@ -312,6 +566,31 @@ export default function App() {
               <Download className="w-5 h-5 mr-2" />
               Download SQL File
             </button>
+          </div>
+        )}
+
+        {/* Validation Failed but SQL Generated */}
+        {result && !result.success && (
+          <div className="bg-white rounded-2xl shadow-xl p-8">
+            <div className="flex items-center mb-6">
+              <XCircle className="w-8 h-8 text-red-500 mr-3" />
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800">Generation Failed</h2>
+                <p className="text-gray-600">{result.message}</p>
+              </div>
+            </div>
+
+            {/* Show validation results if included */}
+            {result.validation && (
+              <div className="mt-6">
+                <button
+                  onClick={() => setValidationResult(result.validation)}
+                  className="text-indigo-600 hover:text-indigo-700 font-medium"
+                >
+                  View Validation Details
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
