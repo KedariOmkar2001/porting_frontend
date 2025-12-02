@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
-import { Upload, Download, AlertCircle, CheckCircle, Settings, FileText, Database, AlertTriangle, XCircle, Info } from 'lucide-react';
+import { Upload, Download, AlertCircle, CheckCircle, Settings, FileText, Database, AlertTriangle, XCircle, Info, Lock, Key } from 'lucide-react';
 
 export default function App() {
   const [masterFile, setMasterFile] = useState(null);
   const [employeeFile, setEmployeeFile] = useState(null);
-  const [tenantId, setTenantId] = useState('1');
-  const [operatedBy, setOperatedBy] = useState('1');
-  const [startingUid, setStartingUid] = useState('1000');
+  const [tenantId, setTenantId] = useState('531802112');
+  const [operatedBy, setOperatedBy] = useState('531773952');
+  const [startingUid, setStartingUid] = useState('90');
+  const [startingEmployeeId, setStartingEmployeeId]  = useState('94');
+  const [startingUserRoleId, setStartingUserRoleId] = useState('444303467162447');
+  const [roleId, setRoleId] = useState('532193206');
+  const [encryptionKey, setEncryptionKey] = useState('MySecretKey123');
+  const [defaultPassword, setDefaultPassword] = useState('$2a$10$E9.YM/JWMio2o.EmsAiSeOPci1yOiuxsq7rrMi2lqxMq8WCTSQjya');
   const [loading, setLoading] = useState(false);
   const [validating, setValidating] = useState(false);
   const [result, setResult] = useState(null);
@@ -54,7 +59,7 @@ export default function App() {
     formData.append('employee_data', employeeFile);
 
     try {
-      const response = await fetch('https://porting-backend-1.onrender.com/validate-data', {
+      const response = await fetch('http://localhost:8000/validate-data', {
         method: 'POST',
         body: formData,
       });
@@ -89,10 +94,15 @@ export default function App() {
     formData.append('tenant_id', tenantId);
     formData.append('operated_by_uid', operatedBy);
     formData.append('starting_uid', startingUid);
+    formData.append('starting_employee_id', startingEmployeeId);
+    formData.append('starting_user_role_id', startingUserRoleId);
+    formData.append('role_id', roleId);
+    formData.append('encryption_key', encryptionKey);
+    formData.append('default_password', defaultPassword);
     formData.append('skip_validation', skipValidation.toString());
 
     try {
-      const response = await fetch('https://porting-backend-1.onrender.com/generate-sql', {
+      const response = await fetch('http://localhost:8000/generate-sql', {
         method: 'POST',
         body: formData,
       });
@@ -105,7 +115,6 @@ export default function App() {
 
       setResult(data);
 
-      // If validation data is included in the response, show it
       if (data.validation) {
         setValidationResult(data.validation);
       }
@@ -120,7 +129,7 @@ export default function App() {
     if (!result?.filename) return;
 
     try {
-      const response = await fetch(`https://porting-backend-1.onrender.com/download/${result.filename}`);
+      const response = await fetch(`http://localhost:8000/download/${result.filename}`);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -146,6 +155,9 @@ export default function App() {
           </div>
           <p className="text-gray-600 text-lg">
             Upload your Excel files and generate SQL insert queries automatically
+          </p>
+          <p className="text-sm text-gray-500 mt-2">
+            With AES encryption for sensitive data
           </p>
         </div>
 
@@ -222,42 +234,148 @@ export default function App() {
               >
                 <Settings className="w-5 h-5 mr-2" />
                 <span className="font-medium">Advanced Configuration</span>
+                <span className="ml-2 text-xs text-gray-500">
+                  ({showConfig ? 'Hide' : 'Show'})
+                </span>
               </button>
 
               {showConfig && (
-                <div className="grid md:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Tenant ID
-                    </label>
-                    <input
-                      type="number"
-                      value={tenantId}
-                      onChange={(e) => setTenantId(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    />
+                <div className="space-y-6">
+                  {/* Database IDs */}
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h3 className="font-semibold text-gray-700 mb-3 flex items-center">
+                      <Database className="w-4 h-4 mr-2" />
+                      Database Configuration
+                    </h3>
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Tenant ID
+                        </label>
+                        <input
+                          type="number"
+                          value={tenantId}
+                          onChange={(e) => setTenantId(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Operated By UID
+                        </label>
+                        <input
+                          type="number"
+                          value={operatedBy}
+                          onChange={(e) => setOperatedBy(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Role ID
+                        </label>
+                        <input
+                          type="number"
+                          value={roleId}
+                          onChange={(e) => setRoleId(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Operated By UID
-                    </label>
-                    <input
-                      type="number"
-                      value={operatedBy}
-                      onChange={(e) => setOperatedBy(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    />
+
+                  {/* Starting IDs */}
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <h3 className="font-semibold text-gray-700 mb-3 flex items-center">
+                      <Key className="w-4 h-4 mr-2" />
+                      Auto-Increment Starting Values
+                    </h3>
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Starting UID <span className="font-mono">[um.umsm_user (PK)]</span>
+                        </label>
+                        <input
+                          type="number"
+                          value={startingUid}
+                          onChange={(e) => setStartingUid(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Starting Employee ID <span className="font-mono">[wamis.amsm_employee (PK)]</span>
+                        </label>
+                        <input
+                          type="number"
+                          value={startingEmployeeId}
+                          onChange={(e) => setStartingEmployeeId(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Starting User Role ID <span className="font-mono">[um.umst_user_role (PK)]</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={startingUserRoleId}
+                          onChange={(e) => setStartingUserRoleId(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Starting UID
-                    </label>
-                    <input
-                      type="number"
-                      value={startingUid}
-                      onChange={(e) => setStartingUid(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    />
+
+                  {/* Security Settings */}
+                  <div className="bg-red-50 p-4 rounded-lg border-2 border-red-200">
+                    <h3 className="font-semibold text-gray-700 mb-3 flex items-center">
+                      <Lock className="w-4 h-4 mr-2 text-red-600" />
+                      Security & Encryption
+                    </h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Encryption Key (AES)
+                          <span className="text-red-500 ml-1">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={encryptionKey}
+                          onChange={(e) => setEncryptionKey(e.target.value)}
+                          className="w-full px-3 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                          placeholder="Keep this secret!"
+                        />
+                        <p className="text-xs text-gray-600 mt-1">
+                          Used to encrypt email & phone numbers
+                        </p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Default Password
+                          <span className="text-red-500 ml-1">*</span>
+                        </label>
+                        <input
+                          type="password"
+                          value={defaultPassword}
+                          onChange={(e) => setDefaultPassword(e.target.value)}
+                          className="w-full px-3 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                          placeholder="Will be hashed (SHA256)"
+                        />
+                        <p className="text-xs text-gray-600 mt-1">
+                          Same password for all users (will be hashed)
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3 bg-white p-3 rounded border border-red-200">
+                      <p className="text-xs text-red-700 flex items-start">
+                        <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0 mt-0.5" />
+                        <span>
+                          <strong>Important:</strong> Store your encryption key securely!
+                          Without it, encrypted data cannot be decrypted.
+                        </span>
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
@@ -314,7 +432,7 @@ export default function App() {
           </div>
         )}
 
-        {/* Validation Results */}
+           {/* Validation Results */}
         {validationResult && !result && (
           <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
             <div className="flex items-center mb-6">
@@ -501,6 +619,8 @@ export default function App() {
           </div>
         )}
 
+
+
         {/* Success Result */}
         {result && result.success && (
           <div className="bg-white rounded-2xl shadow-xl p-8">
@@ -566,31 +686,6 @@ export default function App() {
               <Download className="w-5 h-5 mr-2" />
               Download SQL File
             </button>
-          </div>
-        )}
-
-        {/* Validation Failed but SQL Generated */}
-        {result && !result.success && (
-          <div className="bg-white rounded-2xl shadow-xl p-8">
-            <div className="flex items-center mb-6">
-              <XCircle className="w-8 h-8 text-red-500 mr-3" />
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800">Generation Failed</h2>
-                <p className="text-gray-600">{result.message}</p>
-              </div>
-            </div>
-
-            {/* Show validation results if included */}
-            {result.validation && (
-              <div className="mt-6">
-                <button
-                  onClick={() => setValidationResult(result.validation)}
-                  className="text-indigo-600 hover:text-indigo-700 font-medium"
-                >
-                  View Validation Details
-                </button>
-              </div>
-            )}
           </div>
         )}
       </div>
