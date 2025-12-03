@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Upload, Download, AlertCircle, CheckCircle, Settings, FileText, Database, AlertTriangle, XCircle, Info, Lock, Key } from 'lucide-react';
+import { Upload, Download, AlertCircle, CheckCircle, Settings, FileText, Database, AlertTriangle, XCircle, Info, Lock, Key, PackageOpen } from 'lucide-react';
 
-export default function App() {
+export default function App2() {
   const [masterFile, setMasterFile] = useState(null);
   const [employeeFile, setEmployeeFile] = useState(null);
   const [tenantId, setTenantId] = useState('531802112');
@@ -59,7 +59,7 @@ export default function App() {
     formData.append('employee_data', employeeFile);
 
     try {
-      const response = await fetch('http://localhost:8000/validate-data', {
+      const response = await fetch('https://porting-backend-1.onrender.com/validate-data', {
         method: 'POST',
         body: formData,
       });
@@ -102,7 +102,7 @@ export default function App() {
     formData.append('skip_validation', skipValidation.toString());
 
     try {
-      const response = await fetch('http://localhost:8000/generate-sql', {
+      const response = await fetch('https://porting-backend-1.onrender.com/generate-sql', {
         method: 'POST',
         body: formData,
       });
@@ -125,23 +125,47 @@ export default function App() {
     }
   };
 
-  const handleDownload = async () => {
-    if (!result?.filename) return;
-
+  const downloadFile = async (url, filename) => {
     try {
-      const response = await fetch(`http://localhost:8000/download/${result.filename}`);
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Download failed');
+
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      const downloadUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = result.filename;
+      a.href = downloadUrl;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(downloadUrl);
       document.body.removeChild(a);
     } catch (err) {
-      setError('Failed to download file');
+      setError(`Failed to download ${filename}`);
     }
+  };
+
+  const handleDownloadWamis = async () => {
+    if (!result?.files?.wamis?.filename) return;
+    await downloadFile(
+      `https://porting-backend-1.onrender.com/download-wamis/${result.files.wamis.filename}`,
+      result.files.wamis.filename
+    );
+  };
+
+  const handleDownloadUM = async () => {
+    if (!result?.files?.um?.filename) return;
+    await downloadFile(
+      `https://porting-backend-1.onrender.com/download-um/${result.files.um.filename}`,
+      result.files.um.filename
+    );
+  };
+
+  const handleDownloadBoth = async () => {
+    if (!result?.files?.wamis?.filename || !result?.files?.um?.filename) return;
+    await downloadFile(
+      `https://porting-backend-1.onrender.com/download-both/${result.files.wamis.filename}/${result.files.um.filename}`,
+      `sql_queries_${new Date().toISOString().slice(0,10)}.zip`
+    );
   };
 
   return (
@@ -628,7 +652,9 @@ export default function App() {
               <CheckCircle className="w-8 h-8 text-green-500 mr-3" />
               <div>
                 <h2 className="text-2xl font-bold text-gray-800">Success!</h2>
-                <p className="text-gray-600">SQL queries generated successfully</p>
+                <p className="text-gray-600">
+                  {result.files ? 'Two SQL files generated successfully' : 'SQL queries generated successfully'}
+                </p>
               </div>
             </div>
 
@@ -654,6 +680,74 @@ export default function App() {
               </div>
             </div>
 
+            {/* Dual File Information - NEW */}
+            {result.files && (
+              <div className="grid md:grid-cols-2 gap-4 mb-6">
+                {/* WAMIS File */}
+                <div className="bg-purple-50 border-2 border-purple-200 p-4 rounded-lg">
+                  <div className="flex items-center mb-3">
+                    <Database className="w-5 h-5 text-purple-600 mr-2" />
+                    <h3 className="font-semibold text-purple-900">WAMIS Database</h3>
+                  </div>
+                  <div className="text-sm space-y-1 mb-3">
+                    <p className="text-gray-700">
+                      <strong>Tables:</strong> {result.files.wamis.tables?.join(', ')}
+                    </p>
+                    <p className="text-gray-600 text-xs">
+                      File: {result.files.wamis.filename}
+                    </p>
+                    <p className="text-gray-600 text-xs">
+                      Size: {(result.files.wamis.size_bytes / 1024).toFixed(2)} KB
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleDownloadWamis}
+                    className="w-full bg-purple-600 text-white py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors flex items-center justify-center text-sm"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download WAMIS SQL
+                  </button>
+                </div>
+
+                {/* UM File */}
+                <div className="bg-blue-50 border-2 border-blue-200 p-4 rounded-lg">
+                  <div className="flex items-center mb-3">
+                    <Database className="w-5 h-5 text-blue-600 mr-2" />
+                    <h3 className="font-semibold text-blue-900">UM Database</h3>
+                  </div>
+                  <div className="text-sm space-y-1 mb-3">
+                    <p className="text-gray-700">
+                      <strong>Tables:</strong> {result.files.um.tables?.join(', ')}
+                    </p>
+                    <p className="text-gray-600 text-xs">
+                      File: {result.files.um.filename}
+                    </p>
+                    <p className="text-gray-600 text-xs">
+                      Size: {(result.files.um.size_bytes / 1024).toFixed(2)} KB
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleDownloadUM}
+                    className="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center text-sm"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download UM SQL
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Download Both Button - NEW */}
+            {result.files && (
+              <button
+                onClick={handleDownloadBoth}
+                className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center mb-6"
+              >
+                <PackageOpen className="w-5 h-5 mr-2" />
+                Download Both Files (ZIP)
+              </button>
+            )}
+
             {/* Errors List */}
             {result.errors && result.errors.length > 0 && (
               <div className="mb-6">
@@ -668,24 +762,46 @@ export default function App() {
               </div>
             )}
 
-            {/* SQL Preview */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-3">SQL Preview:</h3>
-              <div className="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto">
-                <pre className="text-xs font-mono whitespace-pre-wrap">
-                  {result.sql_preview}
-                </pre>
-              </div>
-            </div>
+            {/* SQL Previews - UPDATED */}
+            {result.previews ? (
+              <div className="space-y-4">
+                {/* WAMIS Preview */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                    <Database className="w-5 h-5 text-purple-600 mr-2" />
+                    WAMIS SQL Preview:
+                  </h3>
+                  <div className="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto">
+                    <pre className="text-xs font-mono whitespace-pre-wrap">
+                      {result.previews.wamis || 'No preview available'}
+                    </pre>
+                  </div>
+                </div>
 
-            {/* Download Button */}
-            <button
-              onClick={handleDownload}
-              className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center"
-            >
-              <Download className="w-5 h-5 mr-2" />
-              Download SQL File
-            </button>
+                {/* UM Preview */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                    <Database className="w-5 h-5 text-blue-600 mr-2" />
+                    UM SQL Preview:
+                  </h3>
+                  <div className="bg-gray-900 text-blue-400 p-4 rounded-lg overflow-x-auto">
+                    <pre className="text-xs font-mono whitespace-pre-wrap">
+                      {result.previews.um || 'No preview available'}
+                    </pre>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Fallback for old single-file format */
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">SQL Preview:</h3>
+                <div className="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto">
+                  <pre className="text-xs font-mono whitespace-pre-wrap">
+                    {result.sql_preview}
+                  </pre>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
