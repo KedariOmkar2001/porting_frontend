@@ -59,7 +59,7 @@ export default function App2() {
     formData.append('employee_data', employeeFile);
 
     try {
-      const response = await fetch('http://localhost:8000/validate-data', {
+      const response = await fetch('https://porting-backend-1.onrender.com/validate-data', {
         method: 'POST',
         body: formData,
       });
@@ -102,7 +102,7 @@ export default function App2() {
     formData.append('skip_validation', skipValidation.toString());
 
     try {
-      const response = await fetch('http://localhost:8000/generate-sql', {
+      const response = await fetch('https://porting-backend-1.onrender.com/generate-sql', {
         method: 'POST',
         body: formData,
       });
@@ -147,7 +147,7 @@ export default function App2() {
   const handleDownloadWamis = async () => {
     if (!result?.files?.wamis?.filename) return;
     await downloadFile(
-      `http://localhost:8000/download-wamis/${result.files.wamis.filename}`,
+      `https://porting-backend-1.onrender.com/download-wamis/${result.files.wamis.filename}`,
       result.files.wamis.filename
     );
   };
@@ -155,7 +155,7 @@ export default function App2() {
   const handleDownloadUM = async () => {
     if (!result?.files?.um?.filename) return;
     await downloadFile(
-      `http://localhost:8000/download-um/${result.files.um.filename}`,
+      `https://porting-backend-1.onrender.com/download-um/${result.files.um.filename}`,
       result.files.um.filename
     );
   };
@@ -163,7 +163,7 @@ export default function App2() {
   const handleDownloadBoth = async () => {
     if (!result?.files?.wamis?.filename || !result?.files?.um?.filename) return;
     await downloadFile(
-      `http://localhost:8000/download-both/${result.files.wamis.filename}/${result.files.um.filename}`,
+      `https://porting-backend-1.onrender.com/download-both/${result.files.wamis.filename}/${result.files.um.filename}`,
       `sql_queries_${new Date().toISOString().slice(0,10)}.zip`
     );
   };
