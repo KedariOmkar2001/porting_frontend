@@ -6,11 +6,11 @@ export default function App2() {
   const [employeeFile, setEmployeeFile] = useState(null);
   const [tenantId, setTenantId] = useState('531802112');
   const [operatedBy, setOperatedBy] = useState('531773952');
-  const [startingUid, setStartingUid] = useState('90');
-  const [startingEmployeeId, setStartingEmployeeId]  = useState('94');
-  const [startingUserRoleId, setStartingUserRoleId] = useState('444303467162447');
+  const [startingUid, setStartingUid] = useState('0');
+  const [startingEmployeeId, setStartingEmployeeId]  = useState('0');
+  const [startingUserRoleId, setStartingUserRoleId] = useState('0');
   const [roleId, setRoleId] = useState('532193206');
-  const [encryptionKey, setEncryptionKey] = useState('MySecretKey123');
+  const [encryptionKey, setEncryptionKey] = useState('secret-key');
   const [defaultPassword, setDefaultPassword] = useState('$2a$10$E9.YM/JWMio2o.EmsAiSeOPci1yOiuxsq7rrMi2lqxMq8WCTSQjya');
   const [loading, setLoading] = useState(false);
   const [validating, setValidating] = useState(false);
@@ -59,7 +59,7 @@ export default function App2() {
     formData.append('employee_data', employeeFile);
 
     try {
-      const response = await fetch('https://porting-backend-1.onrender.com/validate-data', {
+      const response = await fetch('http://localhost:8000/validate-data', {
         method: 'POST',
         body: formData,
       });
@@ -102,7 +102,7 @@ export default function App2() {
     formData.append('skip_validation', skipValidation.toString());
 
     try {
-      const response = await fetch('https://porting-backend-1.onrender.com/generate-sql', {
+      const response = await fetch('http://localhost:8000/generate-sql', {
         method: 'POST',
         body: formData,
       });
@@ -147,7 +147,7 @@ export default function App2() {
   const handleDownloadWamis = async () => {
     if (!result?.files?.wamis?.filename) return;
     await downloadFile(
-      `https://porting-backend-1.onrender.com/download-wamis/${result.files.wamis.filename}`,
+      `http://localhost:8000/download-wamis/${result.files.wamis.filename}`,
       result.files.wamis.filename
     );
   };
@@ -155,7 +155,7 @@ export default function App2() {
   const handleDownloadUM = async () => {
     if (!result?.files?.um?.filename) return;
     await downloadFile(
-      `https://porting-backend-1.onrender.com/download-um/${result.files.um.filename}`,
+      `http://localhost:8000/download-um/${result.files.um.filename}`,
       result.files.um.filename
     );
   };
@@ -163,7 +163,7 @@ export default function App2() {
   const handleDownloadBoth = async () => {
     if (!result?.files?.wamis?.filename || !result?.files?.um?.filename) return;
     await downloadFile(
-      `https://porting-backend-1.onrender.com/download-both/${result.files.wamis.filename}/${result.files.um.filename}`,
+      `http://localhost:8000/download-both/${result.files.wamis.filename}/${result.files.um.filename}`,
       `sql_queries_${new Date().toISOString().slice(0,10)}.zip`
     );
   };
@@ -285,7 +285,7 @@ export default function App2() {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Operated By UID
+                          Operated By
                         </label>
                         <input
                           type="number"
@@ -294,17 +294,17 @@ export default function App2() {
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                         />
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Role ID
-                        </label>
-                        <input
-                          type="number"
-                          value={roleId}
-                          onChange={(e) => setRoleId(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                        />
-                      </div>
+                      {/*<div>*/}
+                      {/*  <label className="block text-sm font-medium text-gray-700 mb-2">*/}
+                      {/*    Role ID*/}
+                      {/*  </label>*/}
+                      {/*  <input*/}
+                      {/*    type="number"*/}
+                      {/*    value={roleId}*/}
+                      {/*    onChange={(e) => setRoleId(e.target.value)}*/}
+                      {/*    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"*/}
+                      {/*  />*/}
+                      {/*</div>*/}
                     </div>
                   </div>
 
